@@ -67,16 +67,22 @@
                     This app is free!!! And you are the only one holding your data!
                 </p>
             </section>
+            <section class="dropdown">
+                <h2>Select a Budget Category</h2>
+                <select id="budgetDropdown">
+                    <option value="">--Choose a category--</option>
+                </select>
+                <p id="selectedBudget"></p>
+            </section>
     
             <section class="chart">
-                <h2>Chart</h2>
-
+                <h2>ChartJS Chart</h2>
                 <figure>
                     <canvas id="myChart" width="400" height="400"></canvas>
                     <figcaption>Budget distribution chart</figcaption>
                 </figure>
-
             </section>
+
             <section class="d3-chart">
                 <h2>D3JS Chart</h2>
                 <svg id="d3Chart" width="400" height="400"></svg>
@@ -92,17 +98,20 @@
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js" integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg==" crossorigin="anonymous" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha512-s+xg36jbIujB2S2VKfpGmlC3T5V2TF3lY48DX7u2r9XzGzgPsa6wTpOQA7J9iffvdeBN0q9tKzRxVxw1JviZPg==" crossorigin="anonymous"></script>
+    <!-- Axios & ChartJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" defer></script>
 
     <script>
+        // ChartJS setup
         var dataSource = {
             datasets: [{
                 data: [],
-                backgroundColor: ['#ffcd56','#ff6384','#36a2eb','#fd6b19']
+                backgroundColor: []
             }],
             labels: []
         };
+
         function createChart() {
             var ctx = document.getElementById('myChart').getContext('2d');
             new Chart(ctx, {
@@ -116,27 +125,51 @@
                 }
             });
         }
+
+        function populateDropdown(data) {
+            const dropdown = document.getElementById('budgetDropdown');
+            const display = document.getElementById('selectedBudget');
+            dropdown.innerHTML = '<option value="">--Choose a category--</option>';
+
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.value;
+                option.textContent = item.title;
+                dropdown.appendChild(option);
+            });
+
+            dropdown.addEventListener('change', e => {
+                display.textContent = e.target.value ? `Budget: $${e.target.value}` : '';
+            });
+        }
+
         function getBudget() {
             axios.get('/budget')
-                .then(function(res) {
-                    console.log("Budget API response:", res.data);
-                    if (res.data && res.data.myBudget && res.data.myBudget.length > 0) {
-                        dataSource.datasets[0].data = [];
-                        dataSource.labels = [];
-                        res.data.myBudget.forEach(item => {
-                            dataSource.datasets[0].data.push(item.budget);
-                            dataSource.labels.push(item.title);
-                        });
-                    } else {
-                        console.warn("No budget data received from API. Using sample data.");
-                        dataSource.datasets[0].data = [200, 500, 300];
-                        dataSource.labels = ['Eat out', 'Rent', 'Groceries'];
-                    }
-                    createChart(); 
+                .then(res => {
+                    const items = res.data;
+                    console.log("Budget API response:", items);
+
+                    // ChartJS data
+                    dataSource.datasets[0].data = [];
+                    dataSource.datasets[0].backgroundColor = [];
+                    dataSource.labels = [];
+
+                    items.forEach(item => {
+                        dataSource.datasets[0].data.push(item.value);
+                        dataSource.datasets[0].backgroundColor.push(item.color);
+                        dataSource.labels.push(item.title);
+                    });
+
+                    createChart();
+
+                    // Populate dropdown
+                    populateDropdown(items);
                 })
-                .catch(function(err) {
+                .catch(err => {
                     console.error("Error fetching budget data:", err);
+                    // fallback data
                     dataSource.datasets[0].data = [200, 500, 300];
+                    dataSource.datasets[0].backgroundColor = ['#ffcd56','#ff6384','#36a2eb'];
                     dataSource.labels = ['Eat out', 'Rent', 'Groceries'];
                     createChart();
                 });
@@ -145,38 +178,41 @@
         window.onload = getBudget;
     </script>
 
+    <!-- D3JS -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
-    d3.json('/budget').then(data => {
-        const dataset = data.myBudget;
-        const width = 400, height = 400, radius = Math.min(width, height)/2;
+        d3.json('/budget').then(data => {
+            const dataset = data;
+            const width = 400, height = 400, radius = Math.min(width, height) / 2;
 
-        const svg = d3.select("#d3Chart")
-            .attr("width", width)
-            .attr("height", height)
-            .append("g")
-            .attr("transform", `translate(${width/2}, ${height/2})`);
+            const svg = d3.select("#d3Chart")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${width/2}, ${height/2})`);
 
-        const color = d3.scaleOrdinal(d3.schemeCategory10);
+            const color = d3.scaleOrdinal()
+                .domain(dataset.map(d => d.title))
+                .range(dataset.map(d => d.color));
 
-        const pie = d3.pie().value(d => d.budget);
-        const path = d3.arc().outerRadius(radius).innerRadius(0);
+            const pie = d3.pie().value(d => d.value);
+            const path = d3.arc().outerRadius(radius).innerRadius(0);
 
-        const arcs = svg.selectAll("g.arc")
-            .data(pie(dataset))
-            .enter()
-            .append("g")
-            .attr("class", "arc");
+            const arcs = svg.selectAll("g.arc")
+                .data(pie(dataset))
+                .enter()
+                .append("g")
+                .attr("class", "arc");
 
-        arcs.append("path")
-            .attr("d", path)
-            .attr("fill", (d,i) => color(i));
+            arcs.append("path")
+                .attr("d", path)
+                .attr("fill", d => color(d.data.title));
 
-        arcs.append("text")
-            .attr("transform", d => `translate(${path.centroid(d)})`)
-            .attr("text-anchor", "middle")
-            .text(d => d.data.title);
-    }).catch(err => console.error(err));
+            arcs.append("text")
+                .attr("transform", d => `translate(${path.centroid(d)})`)
+                .attr("text-anchor", "middle")
+                .text(d => d.data.title);
+        }).catch(err => console.error(err));
     </script>
 
 

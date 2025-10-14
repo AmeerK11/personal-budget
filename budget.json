@@ -1,32 +1,9 @@
-{
-  "myBudget": [
-    {
-      "title": "Eat out",
-      "budget": 25
-    },
-    {
-      "title": "Rent",
-      "budget": 275
-    },
-    {
-      "title": "Grocery",
-      "budget": 110
-    },
-    {
-      "title": "Utilities",
-      "budget": 60
-    },
-    {
-      "title": "Transport",
-      "budget": 50
-    },
-    {
-      "title": "Entertainment",
-      "budget": 40
-    },
-    {
-      "title": "Savings",
-      "budget": 100
-    }
-  ]
-}
+[
+  { "title": "Eat out", "value": 25, "color": "#FF5733" },
+  { "title": "Rent", "value": 275, "color": "#33FF57" },
+  { "title": "Grocery", "value": 110, "color": "#3357FF" },
+  { "title": "Utilities", "value": 60, "color": "#FFFF00" },
+  { "title": "Transport", "value": 50, "color": "#FF00FF" },
+  { "title": "Entertainment", "value": 40, "color": "#00FFFF" },
+  { "title": "Savings", "value": 100, "color": "#FFA500" }
+]
